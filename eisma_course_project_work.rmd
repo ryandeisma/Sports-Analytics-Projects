@@ -1,0 +1,330 @@
+---
+output:
+  word_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+### Ryan Eisma
+### BAN 592 - Course Project Work
+### Due 7/2/2023
+
+## Minnesota Timberwolves Four Factors Analysis Against External Factors
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggcorrplot)
+library(gridExtra)
+```
+
+```{r warning=FALSE, message=FALSE}
+game <- read_csv("game.csv")
+# str(game)
+```
+
+```{r warning=FALSE, message=FALSE}
+# Season after bubble
+# recent <- game %>% filter(game_date > "2020/12/21")
+recent <- game %>% filter(game_date > "2021/10/21")
+
+```
+
+2022/23 : 42-40
+2021/22 : 46-36
+2020/21 : 23-49 - Excluded due to difference in record. 
+
+```{r warning=FALSE, message=FALSE}
+wolves = recent %>% filter(team_abbreviation_home == 'MIN' | team_abbreviation_away == 'MIN')
+
+wolves = wolves %>% mutate(outcome = ifelse(team_abbreviation_home == 'MIN', ifelse(wl_home == 'W','W', 'L' ), ifelse(wl_away == 'W','W', 'L' )))
+
+wolves = wolves %>% mutate(dest_outcome = ifelse(team_abbreviation_home == 'MIN', ifelse(wl_home == 'W','Home Win', 'Home Loss' ), ifelse(wl_away == 'W','Away Win', 'Away Loss' )))
+
+wolves = wolves %>% mutate(plus_minus = ifelse(team_abbreviation_home == 'MIN', plus_minus_home, plus_minus_away))
+
+wolves = wolves %>% mutate(wl_binary = ifelse(outcome == 'W', 1, 0))
+
+wolves$outcome = as_factor(wolves$outcome)
+wolves$dest_outcome = as_factor(wolves$dest_outcome)
+wolves$wl_binary = as.numeric(wolves$wl_binary)
+
+# summary(wolves)
+```
+
+
+### Create 4 Factors
+
+```{r warning=FALSE, message=FALSE}
+# OeFGPct = (2pt FGM + 1.5 * 3pt FGM) / FGA
+wolves = wolves %>% mutate(OeFGPct = ifelse(team_abbreviation_home == 'MIN',(((fgm_home-fg3m_home)+(1.5*fg3m_home))/fga_home) ,(((fgm_away-fg3m_away)+(1.5*fg3m_away))/fga_away)))
+
+# OTOVPct
+wolves = wolves %>% mutate(OTOVPct = ifelse(team_abbreviation_home == 'MIN',((100 * tov_home)/(fga_home + 0.44 * ftm_home+ tov_home)) ,((100 * tov_away))/(fga_away + 0.44 * ftm_away + tov_away)))                          
+
+# Offensive Rebounding Percentage Formula=(Offensive Rebounds)/[(Offensive Rebounds)+(Opponent’s Defensive Rebounds)]
+wolves = wolves %>% mutate(ORBPct = ifelse(team_abbreviation_home == 'MIN', (oreb_home)/(oreb_home + dreb_away), (oreb_away)/(oreb_away + dreb_home)))
+
+# OFT = FT/FGA
+wolves = wolves %>% mutate(OFT = ifelse(team_abbreviation_home == 'MIN', (fta_home)/(fga_home), (fta_away)/(fga_away)))
+
+# DeFGPct = (2pt FGM + 1.5 * 3pt FGM) / FGA
+wolves = wolves %>% mutate(DeFGPct = ifelse(team_abbreviation_home == 'MIN',(((fgm_away-fg3m_away)+(1.5*fg3m_away))/fga_away) ,(((fgm_home-fg3m_home)+(1.5*fg3m_home))/fga_home)))
+
+# Defensive Rebounding Percentage 
+wolves = wolves %>% mutate(DRBPct = ifelse(team_abbreviation_home == 'MIN', (dreb_home)/(oreb_away + dreb_home), (dreb_away)/(oreb_home + dreb_away)))
+
+# DTOVPct
+wolves = wolves %>% mutate(DTOVPct = ifelse(team_abbreviation_home == 'MIN',((100 * tov_away)/(fga_away + 0.44 * ftm_away+ tov_away)) ,((100 * tov_home))/(fga_home + 0.44 * ftm_home + tov_home)))  
+
+# DFT = FT/FGA
+wolves = wolves %>% mutate(DFT = ifelse(team_abbreviation_home == 'MIN', (fta_away)/(fga_away), (fta_home)/(fga_home)))
+
+```
+
+
+### Create Rest and Back To Back Sets
+
+```{r warning=FALSE, message=FALSE}
+wolves <- wolves %>%
+  mutate(game_date = as.Date(game_date))
+wolves <- wolves %>%
+  arrange(game_date)
+
+consecutive_games <- wolves %>%
+  filter(game_date - lag(game_date) == 1)
+rest_games <- wolves %>% 
+    filter(game_date - lag(game_date) > 2)
+home_games <- wolves %>% 
+  filter(team_abbreviation_home == 'MIN')
+road_games <- wolves %>% 
+  filter(team_abbreviation_away == 'MIN')
+```
+```{r}
+#summary(consecutive_games)
+#summary(rest_games)
+#summary(home_games)
+#summary(road_games)
+
+#mean(wolves$OeFGPct) 0.5494323
+#mean(wolves$ORBPct) 0.2279773
+#mean(wolves$OTOVPct) 13.27211
+#mean(wolves$OFT) 0.2622303
+#mean(wolves$DeFGPct) 0.5395748
+#mean(wolves$DRBPct)  0.7475091
+#mean(wolves$DTOVPct) # 14.24
+#mean(wolves$DFT) # 0.296
+```
+
+### Home Court Advantage
+(Note: Before removal of low year)
+Home Win :59
+Home Loss:54
+Away Win :44
+Home Win :59
+
+```{r warning=FALSE, message=FALSE}
+# wolves %>%
+#  filter(dest_outcome %in% c("Home Win", "Home Loss")) %>%
+#  ggplot() +
+#   aes(x = dest_outcome) +
+#   geom_bar(fill = "#112446") +
+#   theme_minimal()
+```
+
+
+```{r warning=FALSE, message=FALSE}
+four_fact = wolves %>% select(wl_binary, plus_minus, OeFGPct, OTOVPct, OFT,ORBPct, DeFGPct, DTOVPct, DFT,DRBPct)
+str(four_fact)
+```
+```{r warning=FALSE, message=FALSE}
+p1 <- ggplot(data=wolves, aes(x=outcome, y=OeFGPct, color=OeFGPct))+geom_point(show.legend = FALSE) + theme_bw()
+p2 <- ggplot(data=wolves, aes(x=outcome, y=OFT, color=OFT))+geom_point(show.legend = FALSE) + theme_bw()
+p3 <- ggplot(data=wolves, aes(x=outcome, y=ORBPct, color=ORBPct))+geom_point(show.legend = FALSE) + theme_bw()
+p4 <- ggplot(data=wolves, aes(x=outcome, y=OTOVPct, color=OTOVPct))+geom_point(show.legend = FALSE) + theme_bw()
+p5 <- ggplot(data=wolves, aes(x=outcome, y=DeFGPct, color=DeFGPct))+geom_point(show.legend = FALSE) 
+p6 <- ggplot(data=wolves, aes(x=outcome, y=DFT, color=DFT))+geom_point(show.legend = FALSE) + theme_bw()
+p7 <- ggplot(data=wolves, aes(x=outcome, y=DRBPct, color=DRBPct))+geom_point(show.legend = FALSE) + theme_bw()
+p8 <- ggplot(data=wolves, aes(x=outcome, y=DTOVPct, color=DTOVPct ))+geom_point(show.legend = FALSE) + theme_bw()
+```
+### Offensive 
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p1, p2, p3, p4, ncol = 2) 
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p5, p6, p7, p8, ncol = 2)
+```
+
+```{r warning=FALSE, message=FALSE}
+p1 <- ggplot(home_games) +
+  aes(x = outcome, y = OeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p2 <- ggplot(home_games) +
+  aes(x = outcome, y = ORBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p3 <- ggplot(home_games) +
+  aes(x = outcome, y = OTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p4 <- ggplot(home_games) +
+  aes(x = outcome, y = OFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal()+ xlab("")
+
+p5 <- ggplot(home_games) +
+  aes(x = outcome, y = DeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p6 <- ggplot(home_games) +
+  aes(x = outcome, y = DRBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p7 <- ggplot(home_games) +
+  aes(x = outcome, y = DTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p8 <- ggplot(home_games) +
+  aes(x = outcome, y = DFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+
+```
+
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p1, p2, p3, p4, ncol = 2) 
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p5, p6, p7, p8, ncol = 2)
+```
+
+```{r warning=FALSE, message=FALSE}
+p1 <- ggplot(road_games) +
+  aes(x = outcome, y = OeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p2 <- ggplot(road_games) +
+  aes(x = outcome, y = ORBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p3 <- ggplot(road_games) +
+  aes(x = outcome, y = OTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p4 <- ggplot(road_games) +
+  aes(x = outcome, y = OFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal()+ xlab("")
+
+p5 <- ggplot(road_games) +
+  aes(x = outcome, y = DeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p6 <- ggplot(road_games) +
+  aes(x = outcome, y = DRBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p7 <- ggplot(road_games) +
+  aes(x = outcome, y = DTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p8 <- ggplot(road_games) +
+  aes(x = outcome, y = DFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p1, p2, p3, p4, ncol = 2) 
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p5, p6, p7, p8, ncol = 2)
+```
+
+```{r warning=FALSE, message=FALSE}
+p1 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = OeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p2 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = ORBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p3 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = OTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p4 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = OFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal()+ xlab("")
+
+p5 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = DeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p6 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = DRBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p7 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = DTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p8 <- ggplot(consecutive_games) +
+  aes(x = outcome, y = DFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+
+```
+
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p1, p2, p3, p4, ncol = 2) 
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p5, p6, p7, p8, ncol = 2)
+```
+
+```{r warning=FALSE, message=FALSE}
+p1 <- ggplot(rest_games) +
+  aes(x = outcome, y = OeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p2 <- ggplot(rest_games) +
+  aes(x = outcome, y = ORBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p3 <- ggplot(rest_games) +
+  aes(x = outcome, y = OTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p4 <- ggplot(rest_games) +
+  aes(x = outcome, y = OFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal()+ xlab("")
+
+p5 <- ggplot(rest_games) +
+  aes(x = outcome, y = DeFGPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p6 <- ggplot(rest_games) +
+  aes(x = outcome, y = DRBPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p7 <- ggplot(rest_games) +
+  aes(x = outcome, y = DTOVPct) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+p8 <- ggplot(rest_games) +
+  aes(x = outcome, y = DFT) +
+  geom_boxplot(fill = "#2EF818") +
+  theme_minimal() + xlab("")
+
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p1, p2, p3, p4, ncol = 2) 
+```
+```{r warning=FALSE, message=FALSE}
+grid.arrange(p5, p6, p7, p8, ncol = 2)
+```
