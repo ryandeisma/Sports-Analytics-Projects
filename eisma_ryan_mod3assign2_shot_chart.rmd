@@ -1,0 +1,197 @@
+---
+output:
+  html_document: default
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+## Shot Chart Blog
+**Ryan Eisma**
+
+```{r echo=FALSE, warning=FALSE}
+#install.packages("devtools")
+#devtools::install_github("abresler/nbastatR")
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(devtools)
+library(nbastatR)
+library(tidyverse)
+```
+```{r echo=FALSE, warning=FALSE}
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+source("https://raw.githubusercontent.com/stephenhillphd/ballr/master/plot_court.R")
+source("https://raw.githubusercontent.com/stephenhillphd/ballr/master/court_themes.R")
+plot_court()
+court_points = court_points %>% mutate_if(is.numeric,~.*10)
+```
+```{r echo=FALSE, warning=FALSE}
+# ggplot(shots,aes(x=locationX,y=locationY+45)) + geom_point() + coord_equal() +
+#geom_path(data = court_points, aes(x = x, y = y, group = desc), color = "black") + xlim(-250,250) + ylim(0,400) + theme_minimal()
+```
+```{r echo=FALSE}
+#ggplot(shots,aes(x=locationX,y=locationY+45)) + stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) + coord_equal() + geom_path(data = court_points, aes(x = x, y = y, group = desc), color = "black") + xlim(-250,250) + ylim(0,400) + theme_minimal()
+```
+```{r echo=FALSE}
+#shots = shots %>% filter(zoneRange != "Less Than 8 ft.")
+```
+```{r echo=FALSE}
+#ggplot(shots,aes(x=locationX,y=locationY+45)) + stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) + coord_equal() + geom_path(data = court_points, aes(x = x, y = y, group = desc), color = "black") + xlim(-250,250) + ylim(0,400) + theme_minimal()
+```
+```{r echo=FALSE}
+#ggplot(shots,aes(x=locationX,y=locationY+45)) +
+#stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+#scale_fill_distiller(palette=4, direction=-1) +
+#coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+# color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "x coordinate", y = "y coordinate") + theme_minimal() + theme(legend.position = "none")
+```
+
+Basketball analytics provides the ability to visualize the gameplay uniquely with Shot Chart data and software libraries that allow us to display the data in a way that may help it be better “digested” by the intended audience. For this entry, I will explain the basics of shot chart data, what it is and why it is useful, show and describe both team and player examples of shot chart data in the 2018-2019 NBA season, and share insights that I have gained through the process.
+
+### What is a basketball shot chart and how can we use it?
+
+A basketball shot chart is a visual representation of shot-attempt locations. For our analysis, the x and y coordinates relate to the position of a shot attempt taken by an NBA player during the 2018-2019 season. Shot chart visualizations have numerous applications including aiding game planning, evaluating players and teams including their strengths and weaknesses, visualizing trends, and overall better understanding of what is happening in a basketball game.
+
+Shot chart data can be used to analyze where a team or individual player most frequently takes shots and where they are most effective. As a basketball data analyst, front office personnel, or coach, knowing where each one of your players is most comfortable and effective, can be a good tool in understanding how to design an offense that works for your team if you’re the coach, or understand what players your team may want to bring in to compliment your team from the front office perspective. Shot charts could be used to analyze the opposition too. Having a good understanding of the opposing player’s frequency can allow a coach to a scheme where to send defensive help, where to force the ball, and aid in a better overall understanding of the opposing team’s tendencies.
+
+We can illustrate several interesting basketball shot plots to gain insight into our data set. There are numerous things we can drill down into such as visualizing made shots, missed shots, filtered by game or time of the game, various shot distances, and player choices. One of the broader approaches is to look at a team’s performance throughout the season. The first example plots below are for four Western Conference teams during the 2018-2019 season, the Los Angeles Lakers, Golden State Warriors, Houston Rockets, and Portland Trail Blazers.
+ 
+
+### Team Shot Charts
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+teams = teams_shots(teams =  c("Los Angeles Lakers", "Golden State Warriors","Houston Rockets", "Portland Trail Blazers"), seasons = 2019)
+teams = teams %>% filter(zoneRange != "Less Than 8 ft.")
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+bigs = teams_shots(teams =  c("Minnesota Timberwolves", "Denver Nuggets","Philadelphia 76ers", "Los Angeles Lakers", "New Orleans Pelicans"), seasons = 2019)
+bigs = bigs %>% filter(zoneRange != "Less Than 8 ft.")
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+east = teams_shots(teams =  c("Milwaukee Bucks", "New York Knicks"), seasons = 2019)
+east = east %>% filter(zoneRange != "Less Than 8 ft.")
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(teams,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~nameTeam)
+```
+
+The charts illustrate a common theme among NBA teams in recent years: a move toward the three-point shot. All four teams’ most common shots (after the under 8 feet shots were filtered out) were from the three-point arch. The highest concentration of shots appears to be the “above-the-break” 3-point shot from both sides of the floor. The “top-of-the-key” three connecting the left and right sides, also, showed varying levels of frequency. Another popular location for all four teams was the two corner threes, which is a very desired location for a shot due to it being the shortest three-pointer on the court.
+
+Even though the charts are very similar, they have some slight differences. The Rockets appear to attempt threes at a much higher frequency than the other four. The Rockets, also, have exploited the corner three as part of their offense the most compared to the other teams. The Warriors and the Lakers appear to have a more balanced shot selection. The Warriors, for example, have groupings surrounding the paint, meaning that at least a portion of their offense incorporates more mid-range shots.
+
+Another takeaway from the Rockets chart is that the highest concentrated area, in all four of the plots, is just above the left wing three. Having a background of information from the players making up these teams, this could be an interesting area to investigate. James Harden, the best player on this Rockets team, is a high-volume three-point shooter that initiates the offense. Being a left-handed player, the above-the-break three from the left side would make sense why that shot showed up with the most frequency.
+
+### Team Standings Examination
+
+If the teams try to get to similar shots, is there a major difference between the stronger and the teams at the bottom? Are good teams better at prioritizing the “right” shots? To investigate these questions we can take a look at the polar ends of the 2019 Eastern Conference. The Bucks finished in 1st with a strong finish of 60-22, while the Knicks finished last in the conference and league at 17-65. Below are their charts.
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(east,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~nameTeam)
+```
+
+ 
+The Milwaukee Bucks see almost the sole density concentrations at the top of the key, wings, and corners behind the three-point line. They appear to emphasize getting to the three-pointer. The Knicks, too, have dense concentrations behind the arc, however, they have shading all over the court and are far less dense in the value areas. This could be an indication of the players on the team, or it could be a visualization of a more successful approach and appears to demonstrate a more efficient offense.
+
+### Player Shot Charts
+
+We’ve investigated some differences in the team’s shot charts, for the next set let’s look at the players. We can dig into the individual player’s shot selection to investigate. Below, I looked at the leading offensive producer for each of these teams, Stephen Curry, James Harden, LeBron James, and Damian Lillard.
+
+
+```{r  echo=FALSE, warning=FALSE, message=FALSE}
+big_men = c("Joel Embiid", "Karl-Anthony Towns", "Nikola Jokić", "Anthony Davis")
+big_data <- bigs %>%
+  filter(namePlayer %in% big_men)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+teams = teams %>% filter(zoneRange != "Less Than 8 ft.")
+players = c("LeBron James", "Stephen Curry", "James Harden", "Damian Lillard")
+player_data <- teams %>%
+  filter(namePlayer %in% players)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+players = c("LeBron James", "Stephen Curry", "James Harden", "Damian Lillard")
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(player_data,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~namePlayer)
+```
+
+In the charts above, it appears that all of the charts have some similarities to the charts of their respective teams. Each of the player’s shot charts differ slightly, giving some insights into their respective styles, however, one difference is how concentrated James Harden shot selection is around the three-point line, especially the left side. While the other three players have some distribution across the court, Harden has a strong dense grouping at the top of the three-point line and then a far less dense area right below the three-point line. An insight could be that Harden may be prone to either take the three or get to the point. In the year's statistics found on [Basketball-Reference](https://www.basketball-reference.com/leagues/NBA_2019_leaders.html), we can see that Harden attempted over 200 more threes than Stephen Curry in 2nd.
+
+LeBron James and Damian Lillard had more diversity in their shot selection. Their charts showed shot distribution in the two-point range. They both had a higher concentration on the right side of the floor, their dominant hand, opposite of Harden. Stephen Curry had a very balanced shot chart. The three-point areas are reflected as his most attempted shot, being a known prolific shooter, however, he has relatively even distribution from both wings, across the top, and in the corner (in that order). Watching Curry, a theory behind this result could be that he is always moving without the ball to relocate for a better shot.
+
+All four players, similarly, had the densest concentration of shots around the three-point arch. All four had their most densely concentrated shot selection area above the break. An analyst could theorize that this could be due to each of the respective players being a primary ball-handler for their organizations. What happens when the player is not the primary ball-handler for the team? Below are the plots for three of the NBA’s more skilled big men, Nikola Jokic, Joel Embid, Anthony Davis, and Karl-Anthony Towns.
+
+### The Skilled BIGs 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(big_data,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~ namePlayer, ncol=2)
+```
+
+As illustrated in the charts, three of the big men are most densely correlated at the top of the key. From watching the three of these players, they often get three-point attempts trailing behind the play. Their defender sags down into the paint by habit, and these three, who are above-average shooters, can take advantage of the good looks. Opposed to the ball-handlers (mostly guards), they have more secondary shot data appearing in the two-point range remaining after the close-proximity shots were filtered out. Anthony Davis is the first shot chart examined as part of this exercise that has not had a dense plot behind the 3-point arc. Instead, he seems to focus his offensive game around the right elbow. 
+
+With shot chart data, we can do more than view the frequency of attempts. The next group of plots will help illustrate the shot strength and weaknesses of each player.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+curry <- teams %>%
+  filter(namePlayer == "Stephen Curry")
+lebron <- teams %>%
+  filter(namePlayer == "LeBron James")
+harden <- teams %>%
+  filter(namePlayer == "James Harden")
+lillard <- teams %>%
+  filter(namePlayer == "Damian Lillard")
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(player_data,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~ namePlayer + typeEvent, ncol=4)
+```
+
+For the final charts, the players are broken down by the frequency of made or missed shots for the correlating area on the court. Curry’s shot charts were slightly different from the other three players, in that, his chart showed a relative balance between made and missed shots and the area of the floor. LeBron’s made shot chart shows a relatively even distribution, with more concentration toward the center of the court. However, James’s missed shot chart has one area on the right above the break three of denser concentration. This could be an area he shoots a lower percentage or an area he shoots at such a higher rate that the missing frequency is high in this spot. This could be another area in that more research could provide interesting insights into LeBron’s shot outcomes.
+
+All the player’s shot charts showed some similarities in shot selection. Each player’s most frequent shot correlated to an area related to a three-point shot. As part of this analysis, I filtered out the closest shots, and from the shot charts, it appears that the most common shot selected by each player is a three-point shot. However, the choice of three appeared to reflect some key characteristics relating to that player and their basketball “game”.
+
+
+
+### Conclusion 
+
+Basketball shot chart data provides an interesting and different visual approach to relaying data. If the audience is familiar with the game of basketball, having a way to visualize aspects of the game in the data with a chart that the audience can tie to an area of the court is a great tool. It could prove a great way to illustrate a point to a player or aid a front office find a player whose strengths or tendencies match what they are looking for.
+
+Even if you’re just trying to gain some insights into the game without being attached to a team, shot charts can prove useful to answer many basketball questions. The one I’ll end with is, what shot does Stephen Curry try to get to when it matters most? I thought the end of the game would be a good place to look. To illustrate this I filtered by his shots with under a minute left in the fourth quarter. As shown in the chart below, it appears that he favors the right center. The made shot density in the center is the strongest with the concentration on makes and missed on the right above the break three. I liked this tool and all the value it could provide.
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+curry <- curry %>% filter(numberPeriod==4) %>% filter(minutesRemaining < 1)
+ggplot(curry,aes(x=locationX,y=locationY+45)) +
+stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+scale_fill_distiller(palette=7, direction=1) +
+coord_equal() +geom_path(data = court_points, aes(x = x, y = y, group = desc),
+ color = "black") + xlim(-250,250) + ylim(0,400) + labs(x = "", y = "") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x = element_blank(),axis.text.y = element_blank()) + facet_wrap(~ namePlayer + typeEvent, ncol=4)
+```
+
